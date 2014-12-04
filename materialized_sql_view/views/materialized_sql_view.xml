@@ -22,10 +22,11 @@
                     <header>
                         <button name="launch_refresh_materialized_sql_view"
                                 string="Refresh now"
-                                type="object" states="nonexistent,refreshed"
+                                type="object" states="nonexistent,refreshed,error"
                                 groups="materialized_sql_view.manager_group"/>
                         <field name="state" widget="statusbar"
                                statusbar_visible="nonexistent,refreshed,refreshing"
+                               statusbar_color="{'error': 'red'}"
                                readonly="1"/>
                     </header>
                     <sheet>

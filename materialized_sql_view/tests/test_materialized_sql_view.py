@@ -5,8 +5,9 @@ from datetime import datetime
 
 class MaterializedSqlView(SharedSetupTransactionCase):
 
-    def setUp(self):
-        super(MaterializedSqlView, self).setUp()
+    @classmethod
+    def initTestData(self):
+        super(MaterializedSqlView, self).initTestData()
         self.matview_mdl = self.registry('materialized.sql.view')
 
     def test_simple_case(self):
