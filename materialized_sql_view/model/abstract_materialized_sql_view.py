@@ -81,7 +81,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
                         view_name=self._sql_view_name,
                         ))
         self.after_refresh(cr)
-        # TODO: sould I commit stuff myself! 
+        # TODO: sould I commit stuff myself!
         # be carefull it's not compatible with SharedSetupTransactionCase unit test utility
 
     def drop_views_if_exist(self, cr):
