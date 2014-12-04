@@ -8,6 +8,8 @@ syntax: glob
 *\#
 *.\#*
 *~
+.installed.cfg
+upgrade.log.*
 
 parts/
 bin/
