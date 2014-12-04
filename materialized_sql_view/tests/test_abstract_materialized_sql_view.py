@@ -50,4 +50,4 @@ class AbstractMaterializedSqlViewTester(SharedSetupTransactionCase):
         self.demo_mdl.refresh_materialized_view(cr)
         # Read user count, there is one more now!
         self.assertEquals(self.demo_mdl.read(cr, uid, self.group_id, ['user_count'])['user_count'],
-                          user_count)
+                          user_count + 1)
