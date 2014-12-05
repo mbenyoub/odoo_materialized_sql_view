@@ -59,25 +59,21 @@ class MaterializedSqlView(osv.Model):
 
     def refresh_materialized_view(self, cr, uid, ids, context=None):
         result = []
+
+        # TODO: I'm not sure if it's necessary, do a real test
         if not context:
             context = {}
-        self.pool.get('')
         uid = context.get('user_id', uid)
+
         matviews_performed = []
         ir_model = self.pool.get('ir.model')
         for matview in self.read(cr, uid, ids, ['id', 'model_id', 'matview_name'], context=context,
                                  load='_classic_write'):
             if matview['matview_name'] in matviews_performed:
                 continue
-            self.before_refresh_view(cr, uid, matview['matview_name'], context)
-            if not context.get('unittest', False):
-                cr.commit()
-            model = ir_model.read(cr, uid, matview['model_id'], ['model'], context)['model']
+            model = ir_model.read(cr, uid, matview['model_id'], ['model'], context=context)['model']
             matview_mdl = self.pool.get(model)
-            matview_mdl.refresh_materialized_view(cr)
-            result.append(self.after_refresh_view(cr, uid, matview['matview_name'], context))
-            if not context.get('unittest', False):
-                cr.commit()
+            result.append(matview_mdl.refresh_materialized_view(cr, uid, context=context))
             matviews_performed.append(matview['matview_name'])
         return result
 

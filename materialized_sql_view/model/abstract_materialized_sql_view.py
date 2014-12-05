@@ -2,7 +2,7 @@
 
 import logging
 from openerp.osv import osv
-# from openerp import SUPERUSER_ID
+from openerp import SUPERUSER_ID
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
 
         logger.info(u"Init materialized view, using Postgresql %r",
                     cr._cnx.get_parameter_status('server_version'))
-        self.create_views(cr)
+        self.create_views(cr, SUPERUSER_ID)
         # TODO: use postgresql materialized view if version > 9.3
 
     def safe_properties(self):
@@ -56,7 +56,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
         if not self._sql_view_name:
             self._sql_view_name = self._table + '_view'
 
-    def create_views(self, cr):
+    def create_views(self, cr, uid, context=None):
         self.safe_properties()
         self.drop_views_if_exist(cr)
         cr.execute("CREATE VIEW %(view_name)s AS (%(sql)s)" % dict(view_name=self._sql_view_name,
@@ -67,39 +67,56 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
                         view_name=self._sql_view_name,
                         ))
         self.after_create(cr)
+        result = self.change_matview_state(cr, uid, 'after_refresh_view', self._sql_mat_view_name,
+                                           True, context)
+        return result
 
-    def refresh_materialized_view(self, cr):
+    def refresh_materialized_view(self, cr, uid, context=None):
         self.safe_properties()
-        self.before_refresh(cr)
+        self.change_matview_state(cr, uid, 'before_refresh_view', self._sql_mat_view_name, True,
+                                  context)
+        self.before_refresh(cr, uid, context)
         cr.execute("DELETE FROM %(mat_view_name)s" % dict(mat_view_name=self._sql_mat_view_name,
                                                           ))
         cr.execute("INSERT INTO %(mat_view_name)s SELECT * FROM %(view_name)s" %
                    dict(mat_view_name=self._sql_mat_view_name,
                         view_name=self._sql_view_name,
                         ))
-        self.after_refresh(cr)
+        self.after_refresh(cr, uid, context)
+        result = self.change_matview_state(cr, uid, 'after_refresh_view', self._sql_mat_view_name,
+                                           True, context)
+        return result
 
-    def drop_views_if_exist(self, cr):
+    def change_matview_state(self, cr, uid, method_name, matview_name, commit=True, context=None):
+        if not context:
+            context = {}
+        matview_stat = self.pool.get('materialized.sql.view')
+        method = getattr(matview_stat, method_name)
+        method(cr, uid, matview_name, context)
+        if not context.get('unittest', False) and commit:
+            cr.commit()
+
+    def drop_views_if_exist(self, cr, uid, context=None):
         self.safe_properties()
         self.before_drop(cr)
         cr.execute("DROP TABLE IF EXISTS %s CASCADE" % (self._sql_mat_view_name))
         cr.execute("DROP VIEW IF EXISTS %s CASCADE" % (self._sql_view_name,))
 
-    def before_drop(self, cr):
+    def before_drop(self, cr, uid, context=None):
         """
             Method called before drop materialized view and view,
             Nothing done in abstract method, it's  hook to used in subclass
         """
         pass
 
-    def after_create(self, cr):
+    def after_create(self, cr, uid, context=None):
         """
             Method called after create materialized view and view,
             Nothing done in abstract method, it's  hook to used in subclass
         """
         pass
 
-    def before_refresh(self, cr):
+    def before_refresh(self, cr, uid, context=None):
         """
             Method called before refresh materialized view,
             this was made to do things like drop index before in the same transaction.
@@ -108,7 +125,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
         """
         pass
 
-    def after_refresh(self, cr):
+    def after_refresh(self, cr, uid, context=None):
         """
             Method called after refresh materialized view,
             this was made to do things like add index after refresh data
