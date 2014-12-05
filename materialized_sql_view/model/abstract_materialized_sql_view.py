@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import psycopg2
 import logging
 from openerp.osv import osv
 from openerp import SUPERUSER_ID
@@ -58,42 +59,67 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
 
     def create_views(self, cr, uid, context=None):
         self.safe_properties()
+        self.change_matview_state(cr, uid, 'before_create_view', context=context)
         self.drop_views_if_exist(cr, uid, context=context)
-        cr.execute("CREATE VIEW %(view_name)s AS (%(sql)s)" % dict(view_name=self._sql_view_name,
-                                                                   sql=self._sql,
-                                                                   ))
-        cr.execute("CREATE TABLE %(mat_view_name)s AS SELECT * FROM %(view_name)s" %
-                   dict(mat_view_name=self._sql_mat_view_name,
-                        view_name=self._sql_view_name,
-                        ))
-        self.after_create(cr, uid, context=context)
+        try:
+            cr.execute("CREATE VIEW %(view_name)s AS (%(sql)s)" %
+                       dict(view_name=self._sql_view_name, sql=self._sql, ))
+            cr.execute("CREATE TABLE %(mat_view_name)s AS SELECT * FROM %(view_name)s" %
+                       dict(mat_view_name=self._sql_mat_view_name,
+                            view_name=self._sql_view_name,
+                            ))
+            self.after_create(cr, uid, context=context)
+        except psycopg2.Error as e:
+            self.report_sql_error(cr, uid, e, context=context)
         result = self.change_matview_state(cr, uid, 'after_refresh_view', context=context)
         return result
 
     def refresh_materialized_view(self, cr, uid, context=None):
+        result = []
         self.safe_properties()
         self.change_matview_state(cr, uid, 'before_refresh_view', context)
-        self.before_refresh(cr, uid, context=context)
-        cr.execute("DELETE FROM %(mat_view_name)s" % dict(mat_view_name=self._sql_mat_view_name,
-                                                          ))
-        cr.execute("INSERT INTO %(mat_view_name)s SELECT * FROM %(view_name)s" %
-                   dict(mat_view_name=self._sql_mat_view_name,
-                        view_name=self._sql_view_name,
-                        ))
-        self.after_refresh(cr, uid, context=context)
-        result = self.change_matview_state(cr, uid, 'after_refresh_view', context=context)
+        try:
+            self.before_refresh(cr, uid, context=context)
+            cr.execute("DELETE FROM %(mat_view_name)s" % dict(mat_view_name=self._sql_mat_view_name,
+                                                              ))
+            cr.execute("INSERT INTO %(mat_view_name)s SELECT * FROM %(view_name)s" %
+                       dict(mat_view_name=self._sql_mat_view_name,
+                            view_name=self._sql_view_name,
+                            ))
+            self.after_refresh(cr, uid, context=context)
+        except psycopg2.Error as e:
+            self.report_sql_error(cr, uid, e, context=context)
+        else:
+            result = self.change_matview_state(cr, uid, 'after_refresh_view', context=context)
         return result
 
     def change_matview_state(self, cr, uid, method_name, context=None):
         matview_stat = self.pool.get('materialized.sql.view')
+        # Make sure object exist or create it
+        matview_stat.create_if_not_exist(cr, uid, {
+            'model_name': self._name,
+            'view_name': self._sql_view_name,
+            'matview_name': self._sql_mat_view_name,
+            'pg_version': cr._cnx.server_version}, context=context)
         method = getattr(matview_stat, method_name)
-        method(cr, uid, self._sql_mat_view_name, context=context)
+        return method(cr, uid, self._sql_mat_view_name, context=context)
 
     def drop_views_if_exist(self, cr, uid, context=None):
         self.safe_properties()
-        self.before_drop(cr, uid, context=context)
-        cr.execute("DROP TABLE IF EXISTS %s CASCADE" % (self._sql_mat_view_name))
-        cr.execute("DROP VIEW IF EXISTS %s CASCADE" % (self._sql_view_name,))
+        try:
+            self.before_drop(cr, uid, context=context)
+            cr.execute("DROP TABLE IF EXISTS %s CASCADE" % (self._sql_mat_view_name))
+            cr.execute("DROP VIEW IF EXISTS %s CASCADE" % (self._sql_view_name,))
+        except psycopg2.Error as e:
+            self.report_sql_error(cr, uid, e, context=context)
+        return self.change_matview_state(cr, uid, 'after_drop_view', context=context)
+
+    def report_sql_error(self, cr, uid, err, context=None):
+        if not context:
+            context = {}
+        context.update({'error_message': err.pgerror})
+        cr.rollback()
+        self.change_matview_state(cr, uid, 'aborted_matview', context=context)
 
     def before_drop(self, cr, uid, context=None):
         """

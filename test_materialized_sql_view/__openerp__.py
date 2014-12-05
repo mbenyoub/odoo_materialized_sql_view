@@ -39,6 +39,7 @@
     'demo_xml': [
     ],
     'data': [
+        'data/ir_cron.xml',
         'views/model_test_using_sql_mat_view.xml',
         'menus/menus.xml',
     ],

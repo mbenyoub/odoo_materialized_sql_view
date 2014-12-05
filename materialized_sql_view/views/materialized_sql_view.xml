@@ -9,6 +9,7 @@
                 <tree string="Materialized SQL View" version="7.0">
                     <field name="name"/>
                     <field name="last_refresh_start_date"/>
+                    <field name="pg_version"/>
                     <field name="state"/>
                 </tree>
             </field>
@@ -22,10 +23,10 @@
                     <header>
                         <button name="launch_refresh_materialized_sql_view"
                                 string="Refresh now"
-                                type="object" states="nonexistent,refreshed,error"
+                                type="object" states="nonexistent,refreshed,aborted"
                                 groups="materialized_sql_view.manager_group"/>
                         <field name="state" widget="statusbar"
-                               statusbar_visible="nonexistent,refreshed,refreshing"
+                               statusbar_visible="nonexistent,creating,refreshing,refreshed,aborted"
                                statusbar_color="{'aborted': 'red'}"
                                readonly="1"/>
                     </header>
@@ -35,11 +36,17 @@
                             <h1><field name="name" placeholder="Pretty materialized sql view name"/></h1>
                         </div>
                         <group>
-                            <field name="model_id" string="Model"/>
-                            <field name="view_name" placeholder="SQL view name (in the database)" />
-                            <field name="matview_name" placeholder="SQL materialized view name (in the database)"/>
-                            <field name="last_refresh_start_date" readonly='1'/>
-                            <field name="last_refresh_end_date" readonly='1'/>
+                            <group>
+                                <field name="model_id" string="Model" readonly='1'/>
+                                <field name="view_name" placeholder="SQL view name (in the database)" />
+                                <field name="matview_name" placeholder="SQL materialized view name (in the database)"/>
+                            </group>
+                            <group>
+                                <field name="pg_version" readonly='1'/>
+                                <field name="last_refresh_start_date" readonly='1'/>
+                                <field name="last_refresh_end_date" readonly='1'/>
+                            </group>
+                            <field name="last_error_message" readonly='1'/>
                         </group>
                     </sheet>
                 </form>

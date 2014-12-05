@@ -84,16 +84,104 @@ class MaterializedSqlView(SharedSetupTransactionCase):
                                        context=self.context)['user_count'],
             user_count + 1)
 
+    def test_launch_refresh_materialized_sql_view_by_name(self):
+        cr, uid = self.cr, self.uid
+        group_id = self.ref('base.group_user')
+
+        user_count = self.demo_matview_mdl.read(cr, uid, group_id, ['user_count'])['user_count']
+        self.users_mdl.create(cr, uid, {'name': u"Test user2",
+                                        'login': u"test2",
+                                        'company_id': self.ref('base.main_company'),
+                                        'customer': False,
+                                        'email': 'demo@yourcompany.example.com',
+                                        'street': u"Avenue des Dessus-de-Lives, 2",
+                                        'city': u"Namue",
+                                        'zip': '5101',
+                                        'country_id': self.ref('base.be'), }, context=self.context)
+        self.assertEquals(
+            self.demo_matview_mdl.read(cr, uid, group_id, ['user_count'],
+                                       context=self.context)['user_count'],
+            user_count)
+        ids = self.matview_mdl.search_materialized_sql_view_ids_from_matview_name(
+            cr, uid, self.demo_matview_mdl._sql_mat_view_name)
+        self.matview_mdl.refresh_materialized_view_by_name(
+            cr, uid, self.demo_matview_mdl._sql_mat_view_name, context=self.context)
+        for rec in self.matview_mdl.read(cr, uid, ids, ['state'], context=self.context):
+            self.assertEquals(rec['state'], 'refreshed')
+        # Read user count, there is one more now!
+        self.assertEquals(
+            self.demo_matview_mdl.read(cr, uid, group_id, ['user_count'],
+                                       context=self.context)['user_count'],
+            user_count + 1)
+
+    def test_before_create_view(self):
+        self.matview_mdl.before_create_view(
+            self.cr, self.uid, self.demo_matview_mdl._sql_mat_view_name, context=self.context)
+        self.assertRecord(self.matview_mdl, self.matview_id,
+                          {'state': 'creating',
+                           'last_error_message': '',
+                           })
+
     def test_before_refresh_view(self):
         self.matview_mdl.before_refresh_view(
-            self.cr, self.uid, self.demo_matview_mdl._sql_mat_view_name)
-        self.assertEquals(self.matview_mdl.read(
-            self.cr, self.uid, [self.matview_id], ['state'], context=self.context)[0]['state'],
-            'refreshing')
+            self.cr, self.uid, self.demo_matview_mdl._sql_mat_view_name, context=self.context)
+        self.assertRecord(self.matview_mdl, self.matview_id,
+                          {'state': 'refreshing',
+                           'last_error_message': '',
+                           })
 
     def test_after_refresh_view(self):
         self.matview_mdl.after_refresh_view(
-            self.cr, self.uid, self.demo_matview_mdl._sql_mat_view_name)
-        self.assertEquals(self.matview_mdl.read(
-            self.cr, self.uid, [self.matview_id], ['state'], context=self.context)[0]['state'],
-            'refreshed')
+            self.cr, self.uid, self.demo_matview_mdl._sql_mat_view_name, context=self.context)
+        self.assertRecord(self.matview_mdl, self.matview_id,
+                          {'state': 'refreshed',
+                           'last_error_message': '',
+                           })
+
+    def test_after_drop_view(self):
+        self.matview_mdl.after_drop_view(
+            self.cr, self.uid, self.demo_matview_mdl._sql_mat_view_name, context=self.context)
+        self.assertRecord(self.matview_mdl, self.matview_id,
+                          {'state': 'nonexistent',
+                           'last_error_message': '',
+                           })
+
+    def test_aborted_matview(self):
+        self.context.update({'error_message': u"Error details"})
+        self.matview_mdl.aborted_matview(
+            self.cr, self.uid, self.demo_matview_mdl._sql_mat_view_name, context=self.context)
+        self.assertRecord(self.matview_mdl, self.matview_id,
+                          {'state': 'aborted',
+                           'last_error_message': u"Error details",
+                           })
+
+    def test_create_if_not_exist(self):
+        cr, uid = self.cr, self.uid
+        count = self.matview_mdl.search(cr, uid, [('view_name', '=', 'test_123')], count=True)
+        self.matview_mdl.create_if_not_exist(cr, uid, {'model_name': self.demo_matview_mdl._name,
+                                                       'view_name': 'test_123',
+                                                       'matview_name': 'test_123_view',
+                                                       'pg_version': cr._cnx.server_version,
+                                                       }, context=self.context)
+        self.assertEquals(
+            count + 1,
+            self.matview_mdl.search(cr, uid, [('view_name', '=', 'test_123')], count=True)
+        )
+        self.matview_mdl.create_if_not_exist(cr, uid, {'model_name': self.demo_matview_mdl._name,
+                                                       'view_name': 'test_123',
+                                                       'matview_name': 'test_123_view',
+                                                       'pg_version': cr._cnx.server_version,
+                                                       }, context=self.context)
+        self.assertEquals(
+            count + 1,
+            self.matview_mdl.search(cr, uid, [('view_name', '=', 'test_123')], count=True)
+        )
+        self.matview_mdl.create_if_not_exist(cr, uid, {'model_name': self.demo_matview_mdl._name,
+                                                       'view_name': 'test_123',
+                                                       'matview_name': 'test_123_view',
+                                                       'pg_version': 90402,
+                                                       }, context=self.context)
+        self.assertEquals(
+            count + 1,
+            self.matview_mdl.search(cr, uid, [('view_name', '=', 'test_123')], count=True)
+        )
