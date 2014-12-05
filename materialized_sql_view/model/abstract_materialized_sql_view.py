@@ -58,7 +58,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
 
     def create_views(self, cr, uid, context=None):
         self.safe_properties()
-        self.drop_views_if_exist(cr)
+        self.drop_views_if_exist(cr, uid, context=context)
         cr.execute("CREATE VIEW %(view_name)s AS (%(sql)s)" % dict(view_name=self._sql_view_name,
                                                                    sql=self._sql,
                                                                    ))
@@ -66,25 +66,25 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
                    dict(mat_view_name=self._sql_mat_view_name,
                         view_name=self._sql_view_name,
                         ))
-        self.after_create(cr)
+        self.after_create(cr, uid, context=context)
         result = self.change_matview_state(cr, uid, 'after_refresh_view', self._sql_mat_view_name,
-                                           True, context)
+                                           False, context=context)
         return result
 
     def refresh_materialized_view(self, cr, uid, context=None):
         self.safe_properties()
         self.change_matview_state(cr, uid, 'before_refresh_view', self._sql_mat_view_name, True,
                                   context)
-        self.before_refresh(cr, uid, context)
+        self.before_refresh(cr, uid, context=context)
         cr.execute("DELETE FROM %(mat_view_name)s" % dict(mat_view_name=self._sql_mat_view_name,
                                                           ))
         cr.execute("INSERT INTO %(mat_view_name)s SELECT * FROM %(view_name)s" %
                    dict(mat_view_name=self._sql_mat_view_name,
                         view_name=self._sql_view_name,
                         ))
-        self.after_refresh(cr, uid, context)
+        self.after_refresh(cr, uid, context=context)
         result = self.change_matview_state(cr, uid, 'after_refresh_view', self._sql_mat_view_name,
-                                           True, context)
+                                           True, context=context)
         return result
 
     def change_matview_state(self, cr, uid, method_name, matview_name, commit=True, context=None):
@@ -92,7 +92,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
             context = {}
         matview_stat = self.pool.get('materialized.sql.view')
         method = getattr(matview_stat, method_name)
-        method(cr, uid, matview_name, context)
+        method(cr, uid, matview_name, context=context)
         if not context.get('unittest', False) and commit:
             cr.commit()
 
