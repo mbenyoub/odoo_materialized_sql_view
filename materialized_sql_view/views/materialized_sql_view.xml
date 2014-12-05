@@ -26,7 +26,7 @@
                                 groups="materialized_sql_view.manager_group"/>
                         <field name="state" widget="statusbar"
                                statusbar_visible="nonexistent,refreshed,refreshing"
-                               statusbar_color="{'error': 'red'}"
+                               statusbar_color="{'aborted': 'red'}"
                                readonly="1"/>
                     </header>
                     <sheet>
