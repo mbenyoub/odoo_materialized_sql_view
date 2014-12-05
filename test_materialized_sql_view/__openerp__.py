@@ -39,8 +39,8 @@
     'demo_xml': [
     ],
     'data': [
-        # 'views/model_test_using_sql_mat_view.xml',
-        # 'menus/menus.xml',
+        'views/model_test_using_sql_mat_view.xml',
+        'menus/menus.xml',
     ],
     'js': [
     ],
