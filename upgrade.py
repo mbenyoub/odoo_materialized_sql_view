@@ -10,7 +10,7 @@ def run(session, logger):
     """Update all modules."""
     if session.is_initialization:
         logger.info("Install materialized_sql_view modules.")
-        session.install_modules(['materialized_sql_view'])
+        session.install_modules(['test_materialized_sql_view'])
     else:
         logger.info("updating materialized_sql_view modules.")
-        session.update_modules(['materialized_sql_view'])
+        session.update_modules(['test_materialized_sql_view'])
