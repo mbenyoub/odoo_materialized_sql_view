@@ -5,10 +5,9 @@ from openerp import SUPERUSER_ID
 
 MATERIALIZED_SQL_VIEW_STATES = [('nonexistent', 'Nonexistent'),
                                 ('creating', 'Creating'),
-                                ('pendingrefresh', 'Pending Refresh'),
                                 ('refreshing', 'Refreshing'),
                                 ('refreshed', 'Refreshed'),
-                                ('error', 'Error'),
+                                ('aborted', 'Aborted'),
                                 ]
 
 
@@ -21,6 +20,7 @@ class MaterializedSqlView(osv.Model):
         'model_id': fields.many2one('ir.model', 'Model', required=True, delete='cascade'),
         'view_name': fields.char('SQL view name', required=True, readonly=True),
         'matview_name': fields.char('Materialized SQL View Name', required=True, readonly=True),
+        'pg_version': fields.integer('Mat view pg version', required=True, readonly=True),
         'last_refresh_start_date': fields.datetime('Last refreshed start date', readonly=True),
         'last_refresh_end_date': fields.datetime('Last refreshed end date', readonly=True),
         'state': fields.selection(MATERIALIZED_SQL_VIEW_STATES, 'State', required=True,
@@ -36,7 +36,7 @@ class MaterializedSqlView(osv.Model):
             context = {}
         if context.get('ascyn', False):
             self.schedul_refresh_materialized_sql_view(cr, uid, ids, context)
-            return self.write(cr, uid, ids, {'state': 'pendingrefresh'}, context=context)
+            return self.write(cr, uid, ids, {'state': 'refreshing'}, context=context)
         else:
             return self.refresh_materialized_view(cr, uid, ids, context)
 

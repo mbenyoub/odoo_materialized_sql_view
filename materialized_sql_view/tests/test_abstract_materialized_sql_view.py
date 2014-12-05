@@ -12,7 +12,7 @@ class AbstractMaterializedSqlViewTester(SharedSetupTransactionCase):
         self.demo_mdl = self.registry('test.materialized.view')
         self.users_mdl = self.registry('res.users')
 
-        self.context = {'unittest': True, 'ascyn': False}
+        self.context = {'ascyn': False}
         self.user_id = self.ref('base.partner_demo')
         self.group_id = self.ref('base.group_user')
 

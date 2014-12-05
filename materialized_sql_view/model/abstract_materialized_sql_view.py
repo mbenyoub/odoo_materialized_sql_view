@@ -42,7 +42,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
             return
 
         logger.info(u"Init materialized view, using Postgresql %r",
-                    cr._cnx.get_parameter_status('server_version'))
+                    cr._cnx.server_version)
         self.create_views(cr, SUPERUSER_ID)
         # TODO: use postgresql materialized view if version > 9.3
 
@@ -67,14 +67,12 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
                         view_name=self._sql_view_name,
                         ))
         self.after_create(cr, uid, context=context)
-        result = self.change_matview_state(cr, uid, 'after_refresh_view', self._sql_mat_view_name,
-                                           False, context=context)
+        result = self.change_matview_state(cr, uid, 'after_refresh_view', context=context)
         return result
 
     def refresh_materialized_view(self, cr, uid, context=None):
         self.safe_properties()
-        self.change_matview_state(cr, uid, 'before_refresh_view', self._sql_mat_view_name, True,
-                                  context)
+        self.change_matview_state(cr, uid, 'before_refresh_view', context)
         self.before_refresh(cr, uid, context=context)
         cr.execute("DELETE FROM %(mat_view_name)s" % dict(mat_view_name=self._sql_mat_view_name,
                                                           ))
@@ -83,18 +81,13 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
                         view_name=self._sql_view_name,
                         ))
         self.after_refresh(cr, uid, context=context)
-        result = self.change_matview_state(cr, uid, 'after_refresh_view', self._sql_mat_view_name,
-                                           True, context=context)
+        result = self.change_matview_state(cr, uid, 'after_refresh_view', context=context)
         return result
 
-    def change_matview_state(self, cr, uid, method_name, matview_name, commit=True, context=None):
-        if not context:
-            context = {}
+    def change_matview_state(self, cr, uid, method_name, context=None):
         matview_stat = self.pool.get('materialized.sql.view')
         method = getattr(matview_stat, method_name)
-        method(cr, uid, matview_name, context=context)
-        if not context.get('unittest', False) and commit:
-            cr.commit()
+        method(cr, uid, self._sql_mat_view_name, context=context)
 
     def drop_views_if_exist(self, cr, uid, context=None):
         self.safe_properties()

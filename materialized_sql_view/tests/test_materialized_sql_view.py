@@ -12,13 +12,14 @@ class MaterializedSqlView(SharedSetupTransactionCase):
         self.demo_matview_mdl = self.registry('test.materialized.view')
         self.users_mdl = self.registry('res.users')
 
-        self.context = {'unittest': True, 'ascyn': False}
+        self.context = {'ascyn': False}
         mdl_id = self.registry('ir.model').search(
             self.cr, self.uid, [('model', '=', self.demo_matview_mdl._name)])[0]
         values = {'name': u"Model test",
                   'model_id': mdl_id,
                   'view_name': self.demo_matview_mdl._sql_view_name,
                   'matview_name': self.demo_matview_mdl._sql_mat_view_name,
+                  'pg_version': 90205,
                   'state': 'nonexistent'
                   }
         self.matview_id = self.matview_mdl.create(self.cr, self.uid, values, context=self.context)
@@ -32,6 +33,7 @@ class MaterializedSqlView(SharedSetupTransactionCase):
                   'model_id': users_mdl_id,
                   'view_name': u'test_view',
                   'matview_name': u'test_mat_viewname',
+                  'pg_version': 90305,
                   'last_refresh_start_date': datetime.now(),
                   'last_refresh_end_date': datetime.now(),
                   }
