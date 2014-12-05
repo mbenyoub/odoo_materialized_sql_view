@@ -89,20 +89,20 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
         cr.execute("DROP TABLE IF EXISTS %s CASCADE" % (self._sql_mat_view_name))
         cr.execute("DROP VIEW IF EXISTS %s CASCADE" % (self._sql_view_name,))
 
-    """
-        Method called before refreshing materialized view,
-        to do things like droped index before in the same transaction.
-        also called at the beginning of drop_view_if_exists
-    """
     def before_refresh(self, cr):
+        """
+            Method called before refreshing materialized view,
+            to do things like droped index before in the same transaction.
+            also called at the beginning of drop_view_if_exists
+        """
         pass
 
-    """
-        Method called after refreshing materialized view,
-        to do things like added index after refresh data
-        in the same transaction. Also called at the end of create materialized view.
-    """
     def after_refresh(self, cr):
+        """
+            Method called after refreshing materialized view,
+            to do things like added index after refresh data
+            in the same transaction. Also called at the end of create materialized view.
+        """
         pass
 
     def write(self, cr, uid, ids, context=None):
