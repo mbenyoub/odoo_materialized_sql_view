@@ -43,11 +43,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
 
         logger.info(u"Init materialized view, using Postgresql %r",
                     cr._cnx.get_parameter_status('server_version'))
-        self.safe_properties()
         self.create_views(cr)
-        # TODO: add explicit hook before and after refreshing materialized view
-        # TODO: add explicit hook before droping materialized view
-        # TODO: add explicit hook after create materialized view
         # TODO: use postgresql materialized view if version > 9.3
 
     def safe_properties(self):
@@ -61,6 +57,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
             self._sql_view_name = self._table + '_view'
 
     def create_views(self, cr):
+        self.safe_properties()
         self.drop_views_if_exist(cr)
         cr.execute("CREATE VIEW %(view_name)s AS (%(sql)s)" % dict(view_name=self._sql_view_name,
                                                                    sql=self._sql,
@@ -69,7 +66,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
                    dict(mat_view_name=self._sql_mat_view_name,
                         view_name=self._sql_view_name,
                         ))
-        self.after_refresh(cr)
+        self.after_create(cr)
 
     def refresh_materialized_view(self, cr):
         self.safe_properties()
@@ -81,27 +78,42 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
                         view_name=self._sql_view_name,
                         ))
         self.after_refresh(cr)
-        # TODO: sould I commit stuff myself!
-        # be carefull it's not compatible with SharedSetupTransactionCase unit test utility
 
     def drop_views_if_exist(self, cr):
-        self.before_refresh(cr)
+        self.safe_properties()
+        self.before_drop(cr)
         cr.execute("DROP TABLE IF EXISTS %s CASCADE" % (self._sql_mat_view_name))
         cr.execute("DROP VIEW IF EXISTS %s CASCADE" % (self._sql_view_name,))
 
+    def before_drop(self, cr):
+        """
+            Method called before drop materialized view and view,
+            Nothing done in abstract method, it's  hook to used in subclass
+        """
+        pass
+
+    def after_create(self, cr):
+        """
+            Method called after create materialized view and view,
+            Nothing done in abstract method, it's  hook to used in subclass
+        """
+        pass
+
     def before_refresh(self, cr):
         """
-            Method called before refreshing materialized view,
-            to do things like droped index before in the same transaction.
-            also called at the beginning of drop_view_if_exists
+            Method called before refresh materialized view,
+            this was made to do things like drop index before in the same transaction.
+
+            Nothing done in abstract method, it's  hook to used in subclass
         """
         pass
 
     def after_refresh(self, cr):
         """
-            Method called after refreshing materialized view,
-            to do things like added index after refresh data
-            in the same transaction. Also called at the end of create materialized view.
+            Method called after refresh materialized view,
+            this was made to do things like add index after refresh data
+
+            Nothing done in abstract method, it's  hook to used in subclass
         """
         pass
 
