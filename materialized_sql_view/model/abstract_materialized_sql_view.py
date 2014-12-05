@@ -98,7 +98,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
 
     def drop_views_if_exist(self, cr, uid, context=None):
         self.safe_properties()
-        self.before_drop(cr)
+        self.before_drop(cr, uid, context=context)
         cr.execute("DROP TABLE IF EXISTS %s CASCADE" % (self._sql_mat_view_name))
         cr.execute("DROP VIEW IF EXISTS %s CASCADE" % (self._sql_view_name,))
 
