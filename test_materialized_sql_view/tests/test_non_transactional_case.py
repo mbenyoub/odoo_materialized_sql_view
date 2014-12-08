@@ -10,15 +10,15 @@ class NonTransactionalCase(TransactionCase):
         self.context = {'ascyn': False}
 
     def test_overload_before_refresh(self):
-        save_method = self.demo_matview_mdl.after_refresh
+        save_method = self.demo_matview_mdl.after_refresh_materialized_view
 
-        def after_refresh(cr, uid, context=None):
+        def after_refresh_materialized_view(cr, uid, context=None):
             cr.execute("test")
 
         cr, uid = self.cr, self.uid
-        self.demo_matview_mdl.after_refresh = after_refresh
+        self.demo_matview_mdl.after_refresh_materialized_view = after_refresh_materialized_view
         self.demo_matview_mdl.refresh_materialized_view(cr, uid, context=self.context)
-        self.demo_matview_mdl.after_refresh = save_method
+        self.demo_matview_mdl.after_refresh_materialized_view = save_method
         ids = self.mat_view_mdl.search_materialized_sql_view_ids_from_matview_name(
             cr, uid, self.demo_matview_mdl._sql_mat_view_name, context=self.context)
         self.assertEqual(
