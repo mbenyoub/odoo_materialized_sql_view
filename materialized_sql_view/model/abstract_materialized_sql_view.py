@@ -9,34 +9,29 @@ logger = logging.getLogger(__name__)
 
 
 class AbstractMaterializedSqlView(osv.AbstractModel):
-    """
-        This class is an abstract model to help developer to create/refresh/update
-        materialized view.
+    """This class is an abstract model to help developer to create/refresh/update
+       materialized view.
     """
     _name = 'abstract.materialized.sql.view'
     _description = u"This is an helper class to manage materialized SQL view"
     _auto = False
 
-    """
-        The name of the materialized sql view.
-        Must be defined in inherit class (using inherit = [])
-    """
     _sql_mat_view_name = ''
-    """
-        The name of the sql view used to generate the materialized view
-        Must be defined in inherit class (using inherit = [])
+    """The name of the materialized sql view.
+       Must be defined in inherit class (using inherit = [])
     """
     _sql_view_name = ''
-    """
-        The sql query to generate the view (without any create views)
+    """The name of the sql view used to generate the materialized view
+       Must be defined in inherit class (using inherit = [])
     """
     _sql_view_definition = ''
+    """The sql query to generate the view (without any create views)
+    """
 
     def init(self, cr):
-        """
-            Init method is called when installing or updating the module.
-            As we can't know if the model of the sql changed, we have to drop materialized view
-            and recreate it.
+        """Init method is called when installing or updating the module.
+           As we can't know if the model of the sql changed, we have to drop materialized view
+           and recreate it.
         """
         # prevent against Abstract class initialization
         if type(self) == AbstractMaterializedSqlView:
@@ -127,50 +122,38 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
         self.change_matview_state(cr, uid, 'aborted_matview', context=context)
 
     def before_drop_materialized_view(self, cr, uid, context=None):
+        """Method called before drop materialized view and view,
+           Nothing done in abstract method, it's  hook to used in subclass
         """
-            Method called before drop materialized view and view,
-            Nothing done in abstract method, it's  hook to used in subclass
-        """
-        pass
 
     def after_drop_materialized_view(self, cr, uid, context=None):
+        """Method called after drop materialized view and view,
+           Nothing done in abstract method, it's  hook to used in subclass
         """
-            Method called after drop materialized view and view,
-            Nothing done in abstract method, it's  hook to used in subclass
-        """
-        pass
 
     def before_create_materialized_view(self, cr, uid, context=None):
+        """Method called before create materialized view and view,
+           Nothing done in abstract method, it's  hook to used in subclass
         """
-            Method called before create materialized view and view,
-            Nothing done in abstract method, it's  hook to used in subclass
-        """
-        pass
 
     def after_create_materialized_view(self, cr, uid, context=None):
+        """Method called after create materialized view and view,
+           Nothing done in abstract method, it's  hook to used in subclass
         """
-            Method called after create materialized view and view,
-            Nothing done in abstract method, it's  hook to used in subclass
-        """
-        pass
 
     def before_refresh_materialized_view(self, cr, uid, context=None):
-        """
-            Method called before refresh materialized view,
-            this was made to do things like drop index before in the same transaction.
+        """Method called before refresh materialized view,
+           this was made to do things like drop index before in the same transaction.
 
-            Nothing done in abstract method, it's  hook to used in subclass
+           Nothing done in abstract method, it's  hook to used in subclass
         """
-        pass
 
     def after_refresh_materialized_view(self, cr, uid, context=None):
-        """
-            Method called after refresh materialized view,
-            this was made to do things like add index after refresh data
+        """Method called after refresh materialized view,
+           this was made to do things like add index after refresh data
 
-            Nothing done in abstract method, it's  hook to used in subclass
+           Nothing done in abstract method, it's  hook to used in subclass
         """
-        pass
 
     def write(self, cr, uid, ids, context=None):
         raise osv.except_osv(u"Write on materialized view is forbidden",
