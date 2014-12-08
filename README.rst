@@ -21,8 +21,9 @@ Features
 --------
 
 * UI to manage materialized Sql view, and manually launch refresh
-    - add user to the `Materialized sql view Manager` group
-    - Go through `Settings > Technical > Database Structure > Materialized SQL view` menu
+    - add `Materialized sql view Manager` group to your expected user.
+    - Go through `Settings > Technical > Database Structure > Materialized SQL view`
+      menu to manage materialized sql views
 * Abstract class, to help developer to create materialized sql view
 
 
@@ -45,7 +46,7 @@ If you are using the `anybox.recipe.odoo`, add the following line::
      hg https://bitbucket.org/anybox/materialized_sql_view materialized_sql_view default
 
 
-Else, download the module, add it in the odoo path as any odoo module.
+Else, download the module and add it in the odoo path as any others odoo module.
 
 Support
 -------
