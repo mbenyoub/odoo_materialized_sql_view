@@ -20,7 +20,7 @@ class ModelTestUsingSqlMatView(osv.Model):
         'user_count': fields.integer('Users count')
     }
 
-    _sql = """SELECT g.id, g.name, g.id as group_id, count(*) as user_count
+    _sql_view_definition = """SELECT g.id, g.name, g.id as group_id, count(*) as user_count
               FROM res_groups g
                     INNER JOIN res_groups_users_rel rel ON g.id = rel.gid
                     INNER JOIN res_users u ON rel.uid = u.id

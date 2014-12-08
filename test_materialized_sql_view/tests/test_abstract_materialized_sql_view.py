@@ -65,13 +65,13 @@ class AbstractMaterializedSqlViewTester(SharedSetupTransactionCase):
         self.assertEquals(self.demo_matview_mdl._sql_mat_view_name, self.demo_matview_mdl._table)
         self.assertEquals(self.demo_matview_mdl._sql_view_name,
                           self.demo_matview_mdl._table + '_view')
-        sql = self.demo_matview_mdl._sql
-        self.demo_matview_mdl._sql = ''
+        sql = self.demo_matview_mdl._sql_view_definition
+        self.demo_matview_mdl._sql_view_definition = ''
         self.assertRaises(osv.except_osv,
                           self.demo_matview_mdl.safe_properties
                           )
         # Set it back to iniatial value, this is used in some other unit test
-        self.demo_matview_mdl._sql = sql
+        self.demo_matview_mdl._sql_view_definition = sql
 
     def test_change_matview_state(self):
         self.demo_matview_mdl.change_matview_state(self.cr, self.uid,
