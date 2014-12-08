@@ -8,32 +8,31 @@ and necessary user interface to interact with.
 How to use it
 -------------
 
-You can have a look to this basic example, used in test module: `test_materialized_sql_view`.
+You can have a look to `the basic example
+<https://bitbucket.org/anybox/materialized_sql_view/src/default/test_materialized_sql_view/model/model_test_using_sql_mat_view.py>`_,
+used in test module: `test_materialized_sql_view`.
 
-.. literalinclude:: test_materialized_sql_view/model/model_test_using_sql_mat_view.py
-   :language: python
+You can etheir add cron to refresh the materialized view periodicly, 
+`here <https://bitbucket.org/anybox/materialized_sql_view/src/default/test_materialized_sql_view/data/ir_cron.xml>`_ 
+an example on the previous model
 
-If you want to add a cron::
-
-.. literalinclude:: test_materialized_sql_view/data/ir_cron.xml
-   :language: xml
 
 Features
 --------
 
- * UI to manage materialized Sql view, and manually launch refresh
+* UI to manage materialized Sql view, and manually launch refresh
     - add user to the `Materialized sql view Manager` group
     - Go through `Settings > Technical > Database Structure > Materialized SQL view` menu
- * Abstract class, to help developer to create materialized sql view
+* Abstract class, to help developer to create materialized sql view
 
 
 TODO
 ----
 
- * Add helper to avoid recreate materialized sql view if it isn't necessary
+* Add helper to avoid recreate materialized sql view if it isn't necessary
    (model not changed and same database version) when updating module
- * Use postgresql materialized view if pg >= 9.3.0. And well manage when pg version changed.
- * Add UI on models based on materialized view. Specialy on dashboards
+* Use postgresql materialized view if pg >= 9.3.0. And well manage when pg version changed.
+* Add UI on models based on materialized view. Specialy on dashboards
 
 
 Installation
