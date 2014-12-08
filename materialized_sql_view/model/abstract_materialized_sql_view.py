@@ -30,7 +30,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
     """
         The sql query to generate the view (without any create views)
     """
-    _sql = ''
+    _sql_view_definition = ''
 
     def init(self, cr):
         """
@@ -48,9 +48,9 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
         # TODO: use postgresql materialized view if version > 9.3
 
     def safe_properties(self):
-        if not self._sql:
+        if not self._sql_view_definition:
             raise osv.except_osv(u"Properties must be defined in subclass",
-                                 u"_sql properties should be redifined in sub class"
+                                 u"_sql_view_definition properties should be redifined in sub class"
                                  )
         if not self._sql_mat_view_name:
             self._sql_mat_view_name = self._table
@@ -65,7 +65,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
         try:
             self.before_create_materialized_view(cr, uid, context=context)
             cr.execute("CREATE VIEW %(view_name)s AS (%(sql)s)" %
-                       dict(view_name=self._sql_view_name, sql=self._sql, ))
+                       dict(view_name=self._sql_view_name, sql=self._sql_view_definition, ))
             cr.execute("CREATE TABLE %(mat_view_name)s AS SELECT * FROM %(view_name)s" %
                        dict(mat_view_name=self._sql_mat_view_name,
                             view_name=self._sql_view_name,
