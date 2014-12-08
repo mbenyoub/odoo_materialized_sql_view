@@ -59,6 +59,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
 
     def create_views(self, cr, uid, context=None):
         self.safe_properties()
+        logger.info("Create Materialized view %r", self._sql_mat_view_name)
         self.change_matview_state(cr, uid, 'before_create_view', context=context)
         self.drop_views_if_exist(cr, uid, context=context)
         try:
@@ -77,6 +78,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
     def refresh_materialized_view(self, cr, uid, context=None):
         result = []
         self.safe_properties()
+        logger.info("Refresh Materialized view %r", self._sql_mat_view_name)
         self.change_matview_state(cr, uid, 'before_refresh_view', context)
         try:
             self.before_refresh(cr, uid, context=context)
@@ -106,6 +108,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
 
     def drop_views_if_exist(self, cr, uid, context=None):
         self.safe_properties()
+        logger.info("Drop Materialized view %r", self._sql_mat_view_name)
         try:
             self.before_drop(cr, uid, context=context)
             cr.execute("DROP TABLE IF EXISTS %s CASCADE" % (self._sql_mat_view_name))

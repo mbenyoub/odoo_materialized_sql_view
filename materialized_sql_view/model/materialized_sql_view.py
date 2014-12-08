@@ -36,7 +36,7 @@ class MaterializedSqlView(osv.Model):
     def launch_refresh_materialized_sql_view(self, cr, uid, ids, context=None):
         if not context:
             context = {}
-        if context.get('ascyn', False):
+        if context.get('ascyn', True):
             self.schedul_refresh_materialized_sql_view(cr, uid, ids, context)
             return self.write(cr, uid, ids, {'state': 'refreshing'}, context=context)
         else:
