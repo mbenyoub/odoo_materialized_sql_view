@@ -63,6 +63,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
         self.change_matview_state(cr, uid, 'before_create_view', context=context)
         self.drop_views_if_exist(cr, uid, context=context)
         try:
+            self.before_create(cr, uid, context=context)
             cr.execute("CREATE VIEW %(view_name)s AS (%(sql)s)" %
                        dict(view_name=self._sql_view_name, sql=self._sql, ))
             cr.execute("CREATE TABLE %(mat_view_name)s AS SELECT * FROM %(view_name)s" %
@@ -127,6 +128,13 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
     def before_drop(self, cr, uid, context=None):
         """
             Method called before drop materialized view and view,
+            Nothing done in abstract method, it's  hook to used in subclass
+        """
+        pass
+
+    def before_create(self, cr, uid, context=None):
+        """
+            Method called before create materialized view and view,
             Nothing done in abstract method, it's  hook to used in subclass
         """
         pass
