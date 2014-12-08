@@ -63,14 +63,14 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
         self.change_matview_state(cr, uid, 'before_create_view', context=context)
         self.drop_views_if_exist(cr, uid, context=context)
         try:
-            self.before_create(cr, uid, context=context)
+            self.before_create_materialized_view(cr, uid, context=context)
             cr.execute("CREATE VIEW %(view_name)s AS (%(sql)s)" %
                        dict(view_name=self._sql_view_name, sql=self._sql, ))
             cr.execute("CREATE TABLE %(mat_view_name)s AS SELECT * FROM %(view_name)s" %
                        dict(mat_view_name=self._sql_mat_view_name,
                             view_name=self._sql_view_name,
                             ))
-            self.after_create(cr, uid, context=context)
+            self.after_create_materialized_view(cr, uid, context=context)
         except psycopg2.Error as e:
             self.report_sql_error(cr, uid, e, context=context)
         result = self.change_matview_state(cr, uid, 'after_refresh_view', context=context)
@@ -82,14 +82,14 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
         logger.info("Refresh Materialized view %r", self._sql_mat_view_name)
         self.change_matview_state(cr, uid, 'before_refresh_view', context)
         try:
-            self.before_refresh(cr, uid, context=context)
+            self.before_refresh_materialized_view(cr, uid, context=context)
             cr.execute("DELETE FROM %(mat_view_name)s" % dict(mat_view_name=self._sql_mat_view_name,
                                                               ))
             cr.execute("INSERT INTO %(mat_view_name)s SELECT * FROM %(view_name)s" %
                        dict(mat_view_name=self._sql_mat_view_name,
                             view_name=self._sql_view_name,
                             ))
-            self.after_refresh(cr, uid, context=context)
+            self.after_refresh_materialized_view(cr, uid, context=context)
         except psycopg2.Error as e:
             self.report_sql_error(cr, uid, e, context=context)
         else:
@@ -111,9 +111,10 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
         self.safe_properties()
         logger.info("Drop Materialized view %r", self._sql_mat_view_name)
         try:
-            self.before_drop(cr, uid, context=context)
+            self.before_drop_materialized_view(cr, uid, context=context)
             cr.execute("DROP TABLE IF EXISTS %s CASCADE" % (self._sql_mat_view_name))
             cr.execute("DROP VIEW IF EXISTS %s CASCADE" % (self._sql_view_name,))
+            self.after_drop_materialized_view(cr, uid, context=context)
         except psycopg2.Error as e:
             self.report_sql_error(cr, uid, e, context=context)
         return self.change_matview_state(cr, uid, 'after_drop_view', context=context)
@@ -125,28 +126,35 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
         cr.rollback()
         self.change_matview_state(cr, uid, 'aborted_matview', context=context)
 
-    def before_drop(self, cr, uid, context=None):
+    def before_drop_materialized_view(self, cr, uid, context=None):
         """
             Method called before drop materialized view and view,
             Nothing done in abstract method, it's  hook to used in subclass
         """
         pass
 
-    def before_create(self, cr, uid, context=None):
+    def after_drop_materialized_view(self, cr, uid, context=None):
+        """
+            Method called after drop materialized view and view,
+            Nothing done in abstract method, it's  hook to used in subclass
+        """
+        pass
+
+    def before_create_materialized_view(self, cr, uid, context=None):
         """
             Method called before create materialized view and view,
             Nothing done in abstract method, it's  hook to used in subclass
         """
         pass
 
-    def after_create(self, cr, uid, context=None):
+    def after_create_materialized_view(self, cr, uid, context=None):
         """
             Method called after create materialized view and view,
             Nothing done in abstract method, it's  hook to used in subclass
         """
         pass
 
-    def before_refresh(self, cr, uid, context=None):
+    def before_refresh_materialized_view(self, cr, uid, context=None):
         """
             Method called before refresh materialized view,
             this was made to do things like drop index before in the same transaction.
@@ -155,7 +163,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
         """
         pass
 
-    def after_refresh(self, cr, uid, context=None):
+    def after_refresh_materialized_view(self, cr, uid, context=None):
         """
             Method called after refresh materialized view,
             this was made to do things like add index after refresh data
