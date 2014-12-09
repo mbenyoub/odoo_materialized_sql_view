@@ -5,6 +5,10 @@ Materialized SQL VIEW
 This v7.0 odoo module, add utilities to manage materialized SQL view
 and necessary user interface to interact with.
 
+`Check the bot status
+<https://buildbot.anybox.fr/waterfall?category=pv-lead&category=pv-lead&category=pv-lead&reload=60>`_,
+the code is tested on on our CI bot upon odoo version 7.0.
+
 How to use it
 -------------
 
