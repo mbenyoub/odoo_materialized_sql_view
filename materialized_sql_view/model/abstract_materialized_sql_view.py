@@ -34,7 +34,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
            and recreate it.
         """
         # prevent against Abstract class initialization
-        if type(self) == AbstractMaterializedSqlView:
+        if self.__class__ == AbstractMaterializedSqlView:
             return
 
         logger.info(u"Init materialized view, using Postgresql %r",
