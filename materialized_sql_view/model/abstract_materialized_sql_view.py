@@ -6,13 +6,14 @@ from openerp.osv import osv
 from openerp import SUPERUSER_ID
 
 logger = logging.getLogger(__name__)
+ABSTRACT_MODEL_NAME = 'abstract.materialized.sql.view'
 
 
 class AbstractMaterializedSqlView(osv.AbstractModel):
     """This class is an abstract model to help developer to create/refresh/update
        materialized view.
     """
-    _name = 'abstract.materialized.sql.view'
+    _name = ABSTRACT_MODEL_NAME
     _description = u"This is an helper class to manage materialized SQL view"
     _auto = False
 
@@ -28,13 +29,20 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
     """The sql query to generate the view (without any create views)
     """
 
+    def _auto_end(self, cr, context=None):
+        """Override methode, we don't know if the sql view as default odoo fields like write_uid...
+        """
+
     def init(self, cr):
         """Init method is called when installing or updating the module.
            As we can't know if the model of the sql changed, we have to drop materialized view
            and recreate it.
         """
+        if hasattr(super(AbstractMaterializedSqlView, self), 'init'):
+            super(self, AbstractMaterializedSqlView).init(cr)
+
         # prevent against Abstract class initialization
-        if self.__class__ == AbstractMaterializedSqlView:
+        if self._name == ABSTRACT_MODEL_NAME:
             return
 
         logger.info(u"Init materialized view, using Postgresql %r",
