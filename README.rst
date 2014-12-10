@@ -2,8 +2,11 @@
 Materialized SQL VIEW
 =====================
 
-This v7.0 odoo module, add utilities to manage materialized SQL view
+This odoo module, add utilities to manage materialized SQL view
 and necessary user interface to interact with.
+
+* Odoo v7 should used `default` branch
+* Odoo v8 should used `8.0` branch
 
 `Check the bot status
 <https://buildbot.anybox.fr/waterfall?category=pv-lead&category=pv-lead&category=pv-lead&reload=60>`_,
