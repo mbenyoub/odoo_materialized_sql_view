@@ -24,5 +24,5 @@ class ModelTestUsingSqlMatView(osv.Model):
               FROM res_groups g
                     INNER JOIN res_groups_users_rel rel ON g.id = rel.gid
                     INNER JOIN res_users u ON rel.uid = u.id
-              GROUP BY g.id, g.name, g.id
+              GROUP BY g.id, g.name
            """
