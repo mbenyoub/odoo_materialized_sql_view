@@ -91,6 +91,7 @@ class MaterializedSqlView(osv.Model):
                 name = ir_mdl.read(
                     cr, uid, model_id, ['name'], context=context)[0]['name']
                 values.update({'name': name})
+            values.pop('model_name')
             self.create(cr, uid, values, context=context)
 
     def search_materialized_sql_view_ids_from_matview_name(
