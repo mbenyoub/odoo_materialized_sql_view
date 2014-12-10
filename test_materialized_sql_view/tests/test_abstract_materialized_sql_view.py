@@ -12,10 +12,10 @@ class AbstractMaterializedSqlViewTester(SharedSetupTransactionCase):
         self.demo_matview_mdl = self.registry('test.materialized.view')
         self.mat_view_mdl = self.registry('materialized.sql.view')
         self.users_mdl = self.registry('res.users')
-
         self.context = {'ascyn': False}
-        self.user_id = self.ref('base.partner_demo')
-        self.group_id = self.ref('base.group_user')
+        self.ref = self.env.ref
+        self.user_id = self.ref('base.partner_demo').id
+        self.group_id = self.ref('base.group_user').id
 
     def test_write_forbidden(self):
         self.assertRaises(osv.except_osv,
@@ -40,13 +40,14 @@ class AbstractMaterializedSqlViewTester(SharedSetupTransactionCase):
         # add user on group_id
         self.users_mdl.create(cr, uid, {'name': u"Test user",
                                         'login': u"ttt",
-                                        'company_id': self.ref('base.main_company'),
+                                        'company_id': self.ref('base.main_company').id,
                                         'customer': False,
                                         'email': 'demo@yourcompany.example.com',
                                         'street': u"Avenue des Dessus-de-Lives, 2",
                                         'city': u"Namue",
                                         'zip': '5101',
-                                        'country_id': self.ref('base.be'), }, context=self.context)
+                                        'country_id': self.ref('base.be').id, },
+                              context=self.context)
         # The user count havn't increase until we refresh the view
         self.assertEquals(self.demo_matview_mdl.read(cr, uid, self.group_id, ['user_count'],
                                                      context=self.context)['user_count'],
