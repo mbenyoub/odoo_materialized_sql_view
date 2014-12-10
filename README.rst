@@ -10,7 +10,7 @@ and necessary user interface to interact with.
 
 `Check the bot status
 <https://buildbot.anybox.fr/waterfall?category=pv-lead&category=pv-lead&category=pv-lead&reload=60>`_,
-the code is tested on on our CI bot upon odoo version 7.0.
+the code is tested on on our CI bot.
 
 How to use it
 -------------
@@ -50,7 +50,7 @@ Nothing specific here,
 
 If you are using the `anybox.recipe.odoo`, add the following line::
 
-     hg https://bitbucket.org/anybox/materialized_sql_view materialized_sql_view default
+     hg https://bitbucket.org/anybox/materialized_sql_view materialized_sql_view 8.0
 
 
 Else, download the module and add it in the odoo path as any others odoo module.
