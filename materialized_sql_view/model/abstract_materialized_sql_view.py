@@ -4,6 +4,7 @@ import psycopg2
 import logging
 from openerp.osv import osv
 from openerp import SUPERUSER_ID
+from abc import ABCMeta, abstractmethod
 
 logger = logging.getLogger(__name__)
 ABSTRACT_MODEL_NAME = 'abstract.materialized.sql.view'
@@ -44,7 +45,6 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
         logger.info(u"Init materialized view, using Postgresql %r",
                     cr._cnx.server_version)
         self.create_views(cr, SUPERUSER_ID)
-        # TODO: use postgresql materialized view if version > 9.3
 
     def safe_properties(self):
         if not self._sql_view_definition:
@@ -63,12 +63,9 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
         self.drop_views_if_exist(cr, uid, context=context)
         try:
             self.before_create_materialized_view(cr, uid, context=context)
-            cr.execute("CREATE VIEW %(view_name)s AS (%(sql)s)" %
-                       dict(view_name=self._sql_view_name, sql=self._sql_view_definition, ))
-            cr.execute("CREATE TABLE %(mat_view_name)s AS SELECT * FROM %(view_name)s" %
-                       dict(mat_view_name=self._sql_mat_view_name,
-                            view_name=self._sql_view_name,
-                            ))
+            pg = PGMaterializedViewManager.getInstance(cr._cnx.server_version)
+            pg.create_mat_view(cr, self._sql_view_definition, self._sql_view_name,
+                               self._sql_mat_view_name)
             self.after_create_materialized_view(cr, uid, context=context)
         except psycopg2.Error as e:
             self.report_sql_error(cr, uid, e, context=context)
@@ -82,12 +79,8 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
         self.change_matview_state(cr, uid, 'before_refresh_view', context)
         try:
             self.before_refresh_materialized_view(cr, uid, context=context)
-            cr.execute("DELETE FROM %(mat_view_name)s" % dict(mat_view_name=self._sql_mat_view_name,
-                                                              ))
-            cr.execute("INSERT INTO %(mat_view_name)s SELECT * FROM %(view_name)s" %
-                       dict(mat_view_name=self._sql_mat_view_name,
-                            view_name=self._sql_view_name,
-                            ))
+            pg = PGMaterializedViewManager.getInstance(cr._cnx.server_version)
+            pg.refresh_mat_view(cr, self._sql_view_name, self._sql_mat_view_name)
             self.after_refresh_materialized_view(cr, uid, context=context)
         except psycopg2.Error as e:
             self.report_sql_error(cr, uid, e, context=context)
@@ -111,8 +104,8 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
         logger.info("Drop Materialized view %r", self._sql_mat_view_name)
         try:
             self.before_drop_materialized_view(cr, uid, context=context)
-            cr.execute("DROP TABLE IF EXISTS %s CASCADE" % (self._sql_mat_view_name))
-            cr.execute("DROP VIEW IF EXISTS %s CASCADE" % (self._sql_view_name,))
+            pg = PGMaterializedViewManager.getInstance(cr._cnx.server_version)
+            pg.drop_mat_view(cr, self._sql_view_name, self._sql_mat_view_name)
             self.after_drop_materialized_view(cr, uid, context=context)
         except psycopg2.Error as e:
             self.report_sql_error(cr, uid, e, context=context)
@@ -176,3 +169,77 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
                              u"Remove data on materialized view is forbidden,"
                              u"because data would be lost at the next refresh"
                              )
+
+
+class PGMaterializedViewManager(object):
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def create_mat_view(self, cr, sql, view_name, mat_view_name):
+        """Abstract Method to overwrite in subclass to create sql view
+           and materialized sql view from sql query.
+        """
+
+    @abstractmethod
+    def refresh_mat_view(self, cr, view_name, mat_view_name):
+        """Abstract Method  to overwrite in subclass to refresh
+           materialized sql view
+        """
+
+    @abstractmethod
+    def drop_mat_view(self, cr, view_name, mat_view_name):
+        """Abstract Method to overwrite in subclass to drop materialized view and clean
+           every thing to its authority
+        """
+
+    @classmethod
+    def getInstance(cls, version):
+        """Method that return the class depending pg server_version
+        """
+        if version >= 90300:
+            return PG090300()
+        else:
+            return PGNoMaterializedViewSupport()
+
+
+class PGNoMaterializedViewSupport(PGMaterializedViewManager):
+
+    def create_mat_view(self, cr, sql, view_name, mat_view_name):
+        cr.execute("CREATE VIEW %(view_name)s AS (%(sql)s)" %
+                   dict(view_name=view_name, sql=sql, ))
+        cr.execute("CREATE TABLE %(mat_view_name)s AS SELECT * FROM %(view_name)s" %
+                   dict(mat_view_name=mat_view_name,
+                        view_name=view_name,
+                        ))
+
+    def refresh_mat_view(self, cr, view_name, mat_view_name):
+        cr.execute("DELETE FROM %(mat_view_name)s" % dict(mat_view_name=mat_view_name,
+                                                          ))
+        cr.execute("INSERT INTO %(mat_view_name)s SELECT * FROM %(view_name)s" %
+                   dict(mat_view_name=mat_view_name,
+                        view_name=view_name,
+                        ))
+
+    def drop_mat_view(self, cr, view_name, mat_view_name):
+        cr.execute("DROP TABLE IF EXISTS %s CASCADE" % (mat_view_name))
+        cr.execute("DROP VIEW IF EXISTS %s CASCADE" % (view_name,))
+
+
+class PG090300(PGMaterializedViewManager):
+
+    def create_mat_view(self, cr, sql, view_name, mat_view_name):
+        cr.execute("CREATE VIEW %(view_name)s AS (%(sql)s)" %
+                   dict(view_name=view_name, sql=sql, ))
+        cr.execute("CREATE MATERIALIZED VIEW %(mat_view_name)s AS SELECT * FROM %(view_name)s" %
+                   dict(mat_view_name=mat_view_name,
+                        view_name=view_name,
+                        ))
+
+    def refresh_mat_view(self, cr, view_name, mat_view_name):
+        cr.execute("REFRESH MATERIALIZED VIEW %(mat_view_name)s" %
+                   dict(mat_view_name=mat_view_name,
+                        ))
+
+    def drop_mat_view(self, cr, view_name, mat_view_name):
+        cr.execute("DROP MATERIALIZED VIEW IF EXISTS %s CASCADE" % (mat_view_name))
+        cr.execute("DROP VIEW IF EXISTS %s CASCADE" % (view_name,))

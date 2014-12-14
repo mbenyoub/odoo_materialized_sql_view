@@ -32,14 +32,15 @@ Features
     - Go through `Settings > Technical > Database Structure > Materialized SQL view`
       menu to manage materialized sql views
 * Abstract class, to help developer to create materialized sql view
+* Use postgresql materialized view if pg >= 9.3.0.
 
 
 TODO
 ----
 
+* Manage when pg version changed.
 * Add helper to avoid recreate materialized sql view if it isn't necessary
    (model not changed and same database version) when updating module
-* Use postgresql materialized view if pg >= 9.3.0. And well manage when pg version changed.
 * Add UI on models based on materialized view. Specialy on dashboards
 
 
