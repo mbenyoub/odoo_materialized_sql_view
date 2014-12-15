@@ -29,10 +29,6 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
     """The sql query to generate the view (without any create views)
     """
 
-    def _auto_end(self, cr, context=None):
-        """Override methode, we don't know if the sql view as default odoo fields like write_uid...
-        """
-
     def init(self, cr):
         """Init method is called when installing or updating the module.
            As we can't know if the model of the sql changed, we have to drop materialized view

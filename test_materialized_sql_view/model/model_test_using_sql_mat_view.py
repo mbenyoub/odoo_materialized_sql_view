@@ -9,6 +9,7 @@ class ModelTestUsingSqlMatView(osv.Model):
     """
     _name = 'test.materialized.view'
     _description = u"Model used to test the module"
+    _auto = False
 
     _inherit = [
         'abstract.materialized.sql.view',
