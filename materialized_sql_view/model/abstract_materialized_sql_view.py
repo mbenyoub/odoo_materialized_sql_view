@@ -44,7 +44,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
 
         logger.info(u"Init materialized view, using Postgresql %r",
                     cr._cnx.server_version)
-        self.create_views(cr, SUPERUSER_ID)
+        self.create_or_upgrade_pg_matview_if_needs(cr, SUPERUSER_ID)
 
     def safe_properties(self):
         if not self._sql_view_definition:
@@ -56,67 +56,124 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
         if not self._sql_view_name:
             self._sql_view_name = self._table + '_view'
 
-    def create_views(self, cr, uid, context=None):
+    def create_materialized_view(self, cr, uid, context=None):
         self.safe_properties()
+        if not context:
+            context = {}
+        result = []
         logger.info("Create Materialized view %r", self._sql_mat_view_name)
-        self.change_matview_state(cr, uid, 'before_create_view', context=context)
-        self.drop_views_if_exist(cr, uid, context=context)
+        pg_version = context.get('force_pg_version', cr._cnx.server_version)
+        self.change_matview_state(cr, uid, 'before_create_view', pg_version, context=context)
         try:
+            pg = PGMaterializedViewManager.getInstance(pg_version)
+            # make sure there is no existing views create uppon the same version
+            # this could be possible if materialized.sql.view entry is deleted
+            # TODO: maybe move it in create_or_upgrade_pg_matview_if_needs and
+            # automaticly detect if it's a mat view or a table cf utests
+            pg.drop_mat_view(cr, self._sql_view_name, self._sql_mat_view_name)
             self.before_create_materialized_view(cr, uid, context=context)
-            pg = PGMaterializedViewManager.getInstance(cr._cnx.server_version)
             pg.create_mat_view(cr, self._sql_view_definition, self._sql_view_name,
                                self._sql_mat_view_name)
             self.after_create_materialized_view(cr, uid, context=context)
         except psycopg2.Error as e:
-            self.report_sql_error(cr, uid, e, context=context)
-        result = self.change_matview_state(cr, uid, 'after_refresh_view', context=context)
+            self.report_sql_error(cr, uid, e, pg_version, context=context)
+        else:
+            result = self.change_matview_state(cr, uid, 'after_refresh_view', pg_version,
+                                               context=context)
         return result
 
     def refresh_materialized_view(self, cr, uid, context=None):
-        result = []
         self.safe_properties()
-        logger.info("Refresh Materialized view %r", self._sql_mat_view_name)
-        self.change_matview_state(cr, uid, 'before_refresh_view', context)
-        try:
-            self.before_refresh_materialized_view(cr, uid, context=context)
-            pg = PGMaterializedViewManager.getInstance(cr._cnx.server_version)
-            pg.refresh_mat_view(cr, self._sql_view_name, self._sql_mat_view_name)
-            self.after_refresh_materialized_view(cr, uid, context=context)
-        except psycopg2.Error as e:
-            self.report_sql_error(cr, uid, e, context=context)
-        else:
-            result = self.change_matview_state(cr, uid, 'after_refresh_view', context=context)
+        result = self.create_or_upgrade_pg_matview_if_needs(cr, uid, context=context)
+        if not result:
+            logger.info("Refresh Materialized view %r", self._sql_mat_view_name)
+            if not context:
+                context = {}
+            pg_version = context.get('force_pg_version', cr._cnx.server_version)
+            self.change_matview_state(cr, uid, 'before_refresh_view', pg_version,
+                                      context)
+            try:
+                self.before_refresh_materialized_view(cr, uid, context=context)
+                pg = PGMaterializedViewManager.getInstance(pg_version)
+                pg.refresh_mat_view(cr, self._sql_view_name, self._sql_mat_view_name)
+                self.after_refresh_materialized_view(cr, uid, context=context)
+            except psycopg2.Error as e:
+                self.report_sql_error(cr, uid, e, pg_version, context=context)
+            else:
+                result = self.change_matview_state(cr, uid, 'after_refresh_view', pg_version,
+                                                   context=context)
         return result
 
-    def change_matview_state(self, cr, uid, method_name, context=None):
-        matview_stat = self.pool.get('materialized.sql.view')
+    def create_or_upgrade_pg_matview_if_needs(self, cr, uid, context=None):
+        """Compare everything that can cause the needs to drop and recreate materialized view
+           Return True if something done
+        """
+        matview_mdl = self.pool.get('materialized.sql.view')
+        if not context:
+            context = {}
+        ids = matview_mdl.search_materialized_sql_view_ids_from_matview_name(
+            cr, uid, self._sql_mat_view_name, context=context)
+        if ids:
+            # As far matview_mdl is refered by its view name, to get one or more instance
+            # is technicly the same.
+            id = ids[0]
+            rec = matview_mdl.read(cr, uid, id, ['pg_version', 'sql_definition', 'view_name',
+                                                 'state'],
+                                   context=context)
+            pg_version = context.get('force_pg_version', cr._cnx.server_version)
+            if(rec['pg_version'] != pg_version or
+               rec['sql_definition'] != self._sql_view_definition or
+               rec['view_name'] != self._sql_view_name or
+               rec['state'] in ['nonexistent', 'aborted']):
+                self.drop_materialized_view_if_exist(cr, uid, rec['pg_version'],
+                                                     view_name=rec['view_name'],
+                                                     context=context)
+            else:
+                return []
+        return self.create_materialized_view(cr, uid, context=context)
+
+    def change_matview_state(self, cr, uid, method_name, pg_version, context=None):
+        matview_mdl = self.pool.get('materialized.sql.view')
         # Make sure object exist or create it
-        matview_stat.create_if_not_exist(cr, uid, {
+        values = {
             'model_name': self._name,
             'view_name': self._sql_view_name,
             'matview_name': self._sql_mat_view_name,
-            'pg_version': cr._cnx.server_version}, context=context)
-        method = getattr(matview_stat, method_name)
+            'sql_definition': self._sql_view_definition,
+            'pg_version': pg_version,
+        }
+        matview_mdl.create_if_not_exist(cr, uid, values, context=context)
+        method = getattr(matview_mdl, method_name)
+        context.update({'values': values})
         return method(cr, uid, self._sql_mat_view_name, context=context)
 
-    def drop_views_if_exist(self, cr, uid, context=None):
+    def drop_materialized_view_if_exist(self, cr, uid, pg_version, view_name=None,
+                                        mat_view_name=None, context=None):
         self.safe_properties()
+        result = []
         logger.info("Drop Materialized view %r", self._sql_mat_view_name)
         try:
             self.before_drop_materialized_view(cr, uid, context=context)
-            pg = PGMaterializedViewManager.getInstance(cr._cnx.server_version)
-            pg.drop_mat_view(cr, self._sql_view_name, self._sql_mat_view_name)
+            pg = PGMaterializedViewManager.getInstance(pg_version)
+            if not view_name:
+                view_name = self._sql_view_name
+            if not mat_view_name:
+                mat_view_name = self._sql_mat_view_name
+            pg.drop_mat_view(cr, view_name, mat_view_name)
             self.after_drop_materialized_view(cr, uid, context=context)
         except psycopg2.Error as e:
-            self.report_sql_error(cr, uid, e, context=context)
-        return self.change_matview_state(cr, uid, 'after_drop_view', context=context)
+            self.report_sql_error(cr, uid, e, pg_version, context=context)
+        else:
+            result = self.change_matview_state(cr, uid, 'after_drop_view', pg_version,
+                                               context=context)
+        return result
 
-    def report_sql_error(self, cr, uid, err, context=None):
+    def report_sql_error(self, cr, uid, err, pg_version, context=None):
         if not context:
             context = {}
         context.update({'error_message': err.pgerror})
         cr.rollback()
-        self.change_matview_state(cr, uid, 'aborted_matview', context=context)
+        self.change_matview_state(cr, uid, 'aborted_matview', pg_version, context=context)
 
     def before_drop_materialized_view(self, cr, uid, context=None):
         """Method called before drop materialized view and view,

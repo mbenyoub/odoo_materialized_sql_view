@@ -33,14 +33,18 @@ Features
       menu to manage materialized sql views
 * Abstract class, to help developer to create materialized sql view
 * Use postgresql materialized view if pg >= 9.3.0.
+* Manage when pg version changed
+* Recreate materialized sql view only if necessary, one of those change:
+  - sql materialized view name `_sql_mat_view_name`, this is used as search key
+    (so if you change it, you have to manage how to clean unecessary views and records)
+  - sql definition has changed `_sql_view_definition`
+  - sql view name has changed `_sql_view_name`
+  - database version has changed
 
 
 TODO
 ----
 
-* Manage when pg version changed.
-* Add helper to avoid recreate materialized sql view if it isn't necessary
-   (model not changed and same database version) when updating module
 * Add UI on models based on materialized view. Specialy on dashboards
 
 
