@@ -17,6 +17,7 @@ class MaterializedSqlView(SharedSetupTransactionCase):
             self.cr, self.uid, [('model', '=', self.demo_matview_mdl._name)])[0]
         values = {'name': u"Model test",
                   'model_id': mdl_id,
+                  'sql_definition': self.demo_matview_mdl._sql_view_definition,
                   'view_name': self.demo_matview_mdl._sql_view_name,
                   'matview_name': self.demo_matview_mdl._sql_mat_view_name,
                   'pg_version': 90205,
@@ -31,8 +32,9 @@ class MaterializedSqlView(SharedSetupTransactionCase):
                                                         context=self.context)[0]
         values = {'name': u"Test",
                   'model_id': users_mdl_id,
+                  'sql_definition': 'SELECT 1',
                   'view_name': u'test_view',
-                  'matview_name': u'test_mat_viewname',
+                  'matview_name': 'test_mat_view_name',
                   'pg_version': 90305,
                   'last_refresh_start_date': datetime.now(),
                   'last_refresh_end_date': datetime.now(),
@@ -50,15 +52,26 @@ class MaterializedSqlView(SharedSetupTransactionCase):
         self.matview_mdl.unlink(self.cr, self.uid, [id], context=self.context)
 
     def test_search_materialized_sql_view_ids_from_matview_name(self):
-        self.assertTrue(
-            self.matview_id in
-            self.matview_mdl.search_materialized_sql_view_ids_from_matview_name(
-                self.cr, self.uid, self.demo_matview_mdl._sql_mat_view_name, context=self.context))
+        users_mdl_id = self.registry('ir.model').search(self.cr, self.uid,
+                                                        [('model', '=', 'res.users')],
+                                                        context=self.context)[0]
+        values = {'name': u"Test",
+                  'model_id': users_mdl_id,
+                  'sql_definition': 'SELECT 1',
+                  'view_name': u'test_view',
+                  'matview_name': 'test_mat_view_name',
+                  'pg_version': 90305,
+                  'last_refresh_start_date': datetime.now(),
+                  'last_refresh_end_date': datetime.now(),
+                  }
+        id = self.matview_mdl.create(self.cr, self.uid, values)
+        self.assertEquals([id],
+                          self.matview_mdl.search_materialized_sql_view_ids_from_matview_name(
+                          self.cr, self.uid, 'test_mat_view_name', context=self.context))
 
     def test_launch_refresh_materialized_sql_view(self):
         cr, uid = self.cr, self.uid
         group_id = self.ref('base.group_user')
-
         user_count = self.demo_matview_mdl.read(cr, uid, group_id, ['user_count'])['user_count']
         self.users_mdl.create(cr, uid, {'name': u"Test user",
                                         'login': u"ttt",
@@ -76,13 +89,13 @@ class MaterializedSqlView(SharedSetupTransactionCase):
         ids = self.matview_mdl.search_materialized_sql_view_ids_from_matview_name(
             cr, uid, self.demo_matview_mdl._sql_mat_view_name)
         self.matview_mdl.launch_refresh_materialized_sql_view(cr, uid, ids, context=self.context)
-        for rec in self.matview_mdl.read(cr, uid, ids, ['state'], context=self.context):
-            self.assertEquals(rec['state'], 'refreshed')
-        # Read user count, there is one more now!
         self.assertEquals(
             self.demo_matview_mdl.read(cr, uid, group_id, ['user_count'],
                                        context=self.context)['user_count'],
             user_count + 1)
+        for rec in self.matview_mdl.read(cr, uid, ids, ['state'], context=self.context):
+            self.assertEquals(rec['state'], 'refreshed')
+        # Read user count, there is one more now!
 
     def test_launch_refresh_materialized_sql_view_by_name(self):
         cr, uid = self.cr, self.uid
@@ -159,6 +172,7 @@ class MaterializedSqlView(SharedSetupTransactionCase):
         cr, uid = self.cr, self.uid
         count = self.matview_mdl.search(cr, uid, [('view_name', '=', 'test_123')], count=True)
         self.matview_mdl.create_if_not_exist(cr, uid, {'model_name': self.demo_matview_mdl._name,
+                                                       'sql_definition': 'SELECT 1',
                                                        'view_name': 'test_123',
                                                        'matview_name': 'test_123_view',
                                                        'pg_version': cr._cnx.server_version,
@@ -168,6 +182,7 @@ class MaterializedSqlView(SharedSetupTransactionCase):
             self.matview_mdl.search(cr, uid, [('view_name', '=', 'test_123')], count=True)
         )
         self.matview_mdl.create_if_not_exist(cr, uid, {'model_name': self.demo_matview_mdl._name,
+                                                       'sql_definition': 'SELECT 1',
                                                        'view_name': 'test_123',
                                                        'matview_name': 'test_123_view',
                                                        'pg_version': cr._cnx.server_version,
@@ -177,6 +192,7 @@ class MaterializedSqlView(SharedSetupTransactionCase):
             self.matview_mdl.search(cr, uid, [('view_name', '=', 'test_123')], count=True)
         )
         self.matview_mdl.create_if_not_exist(cr, uid, {'model_name': self.demo_matview_mdl._name,
+                                                       'sql_definition': 'SELECT 1',
                                                        'view_name': 'test_123',
                                                        'matview_name': 'test_123_view',
                                                        'pg_version': 90402,

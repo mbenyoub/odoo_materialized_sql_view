@@ -22,6 +22,7 @@ class MaterializedSqlView(osv.Model):
         'view_name': fields.char('SQL view name', required=True, readonly=True),
         'matview_name': fields.char('Materialized SQL View Name', required=True, readonly=True),
         'pg_version': fields.integer('Mat view pg version', required=True, readonly=True),
+        'sql_definition': fields.text('sql', required=True, readonly=True),
         'last_refresh_start_date': fields.datetime('Last refreshed start date', readonly=True),
         'last_refresh_end_date': fields.datetime('Last refreshed end date', readonly=True),
         'last_error_message': fields.text('Last error', readonly=True),
@@ -113,13 +114,24 @@ class MaterializedSqlView(osv.Model):
                                   }, context=context)
 
     def after_refresh_view(self, cr, uid, matview_name, context=None):
-        return self.write_values(cr, uid, matview_name,
-                                 {'last_refresh_end_date': datetime.now(),
-                                  'state': 'refreshed',
-                                  'last_error_message': '',
-                                  }, context=context)
+        values = {'last_refresh_end_date': datetime.now(),
+                  'state': 'refreshed',
+                  'last_error_message': '',
+                  }
+        pg_version = cr._cnx.server_version
+        if context.get('values'):
+            vals = context.get('values')
+            pg_version = vals.get('pg_version', pg_version)
+            if vals.get('sql_definition'):
+                values.update({'sql_definition': vals.get('sql_definition')})
+            if vals.get('view_name'):
+                values.update({'view_name': vals.get('view_name')})
+        values.update({'pg_version': pg_version})
+        return self.write_values(cr, uid, matview_name, values, context=context)
 
     def after_drop_view(self, cr, uid, matview_name, context=None):
+        # Do not unlink here, we don't want to use on other record when refresh
+        # need to drop and create a new materialized view
         return self.write_values(cr, uid, matview_name,
                                  {'state': 'nonexistent',
                                   'last_error_message': '',
