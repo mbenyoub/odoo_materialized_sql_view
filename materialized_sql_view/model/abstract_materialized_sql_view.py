@@ -254,7 +254,7 @@ class PGMaterializedViewManager(object):
         """
 
     def is_existed_relation(self, cr, relname):
-        cr.execute("select count(*) from pg_class where relname like '%s(relname)'" %
+        cr.execute("select count(*) from pg_class where relname like '%(relname)s'" %
                    {'relname': relname})
         return cr.fetchone()[0] > 0
 

@@ -8,7 +8,7 @@ import psycopg2
 class PGMaterializedViewManagerTester(TransactionCase):
 
     def setUp(self):
-        super(PGMaterializedViewManagerTester, self).initTestData()
+        super(PGMaterializedViewManagerTester, self).setUp()
         self.users_mdl = self.registry('res.users')
         self.pg_manager = PGMaterializedViewManager
         self.sql = 'SELECT * FROM res_users'
