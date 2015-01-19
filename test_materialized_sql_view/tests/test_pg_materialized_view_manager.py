@@ -1,20 +1,19 @@
-from anybox.testing.openerp import SharedSetupTransactionCase
+from anybox.testing.opener import TransactionCase
 from materialized_sql_view.model.abstract_materialized_sql_view import PGMaterializedViewManager
 from materialized_sql_view.model.abstract_materialized_sql_view import PG090300
 from materialized_sql_view.model.abstract_materialized_sql_view import PGNoMaterializedViewSupport
 import psycopg2
 
 
-class PGMaterializedViewManagerTester(SharedSetupTransactionCase):
+class PGMaterializedViewManagerTester(TransactionCase):
 
-    @classmethod
-    def initTestData(cls):
-        super(PGMaterializedViewManagerTester, cls).initTestData()
-        cls.users_mdl = cls.registry('res.users')
-        cls.pg_manager = PGMaterializedViewManager
-        cls.sql = 'SELECT * FROM res_users'
-        cls.view_name = "test_view"
-        cls.mat_view_name = "test_mat_view"
+    def setUp(self):
+        super(PGMaterializedViewManagerTester, self).initTestData()
+        self.users_mdl = self.registry('res.users')
+        self.pg_manager = PGMaterializedViewManager
+        self.sql = 'SELECT * FROM res_users'
+        self.view_name = "test_view"
+        self.mat_view_name = "test_mat_view"
 
     def test_get_instance(self):
         self.assertIsInstance(self.pg_manager.getInstance(90299), PGNoMaterializedViewSupport)
@@ -53,3 +52,12 @@ class PGMaterializedViewManagerTester(SharedSetupTransactionCase):
                           'SELECT count(*) FROM %(mat_view)s' %
                           dict(mat_view=self.mat_view_name)
                           )
+
+    def test_is_existed_relation(self):
+        pg = self.pg_manager.getInstance(self.cr._cnx.server_version)
+        pg.create_mat_view(self.cr, self.sql, self.view_name, self.mat_view_name)
+        self.assertTrue(pg.is_existed_relation(self.cr, self.view_name))
+        self.assertTrue(pg.is_existed_relation(self.cr, self.view_name))
+        pg.drop_mat_view(self.cr, self.view_name, self.mat_view_name)
+        self.assertFalse(pg.is_existed_relation(self.cr, self.view_name))
+        self.assertFalse(pg.is_existed_relation(self.cr, self.view_name))
