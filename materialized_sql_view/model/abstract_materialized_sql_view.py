@@ -122,15 +122,19 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
                                                  'state'],
                                    context=context)
             pg_version = context.get('force_pg_version', cr._cnx.server_version)
+            pg = PGMaterializedViewManager.getInstance(cr._cnx.server_version)
             if(rec['pg_version'] != pg_version or
                rec['sql_definition'] != self._sql_view_definition or
                rec['view_name'] != self._sql_view_name or
-               rec['state'] in ['nonexistent', 'aborted']):
+               rec['state'] in ['nonexistent', 'aborted'] or
+               not pg.is_existed_relation(cr, self._sql_view_name) or
+               not pg.is_existed_relation(cr, self._sql_mat_view_name)):
                 self.drop_materialized_view_if_exist(cr, uid, rec['pg_version'],
                                                      view_name=rec['view_name'],
                                                      context=context)
             else:
                 return []
+
         return self.create_materialized_view(cr, uid, context=context)
 
     def change_matview_state(self, cr, uid, method_name, pg_version, context=None):
@@ -249,6 +253,11 @@ class PGMaterializedViewManager(object):
         """Abstract Method to overwrite in subclass to drop materialized view and clean
            every thing to its authority
         """
+
+    def is_existed_relation(self, cr, relname):
+        cr.execute("select count(*) from pg_class where relname like '%s(relname)'" %
+                   {'relname': relname})
+        return cr.fetchone()[0] > 0
 
     @classmethod
     def getInstance(cls, version):
