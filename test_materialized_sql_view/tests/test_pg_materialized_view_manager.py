@@ -1,4 +1,4 @@
-from anybox.testing.opener import TransactionCase
+from anybox.testing.openerp import TransactionCase
 from materialized_sql_view.model.abstract_materialized_sql_view import PGMaterializedViewManager
 from materialized_sql_view.model.abstract_materialized_sql_view import PG090300
 from materialized_sql_view.model.abstract_materialized_sql_view import PGNoMaterializedViewSupport
