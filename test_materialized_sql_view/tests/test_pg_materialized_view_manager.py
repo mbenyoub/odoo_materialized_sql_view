@@ -1,4 +1,4 @@
-from anybox.testing.opener import TransactionCase
+from anybox.testing.openerp import TransactionCase
 from materialized_sql_view.model.abstract_materialized_sql_view import PGMaterializedViewManager
 from materialized_sql_view.model.abstract_materialized_sql_view import PG090300
 from materialized_sql_view.model.abstract_materialized_sql_view import PGNoMaterializedViewSupport
@@ -8,7 +8,7 @@ import psycopg2
 class PGMaterializedViewManagerTester(TransactionCase):
 
     def setUp(self):
-        super(PGMaterializedViewManagerTester, self).initTestData()
+        super(PGMaterializedViewManagerTester, self).setUp()
         self.users_mdl = self.registry('res.users')
         self.pg_manager = PGMaterializedViewManager
         self.sql = 'SELECT * FROM res_users'
