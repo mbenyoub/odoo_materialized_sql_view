@@ -49,7 +49,7 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
     def safe_properties(self):
         if not self._sql_view_definition:
             raise osv.except_osv(u"Properties must be defined in subclass",
-                                 u"_sql_view_definition properties should be redifined in sub class"
+                                 u"_sql_view_definition properties should be redefined in subclass"
                                  )
         if not self._sql_mat_view_name:
             self._sql_mat_view_name = self._table
@@ -129,9 +129,8 @@ class AbstractMaterializedSqlView(osv.AbstractModel):
                rec['state'] in ['nonexistent', 'aborted'] or
                not pg.is_existed_relation(cr, self._sql_view_name) or
                not pg.is_existed_relation(cr, self._sql_mat_view_name)):
-                self.drop_materialized_view_if_exist(cr, uid, rec['pg_version'],
-                                                     view_name=rec['view_name'],
-                                                     context=context)
+                self.drop_materialized_view_if_exist(
+                    cr, uid, rec['pg_version'], view_name=rec['view_name'], context=context)
             else:
                 return []
 

@@ -3,12 +3,13 @@ from openerp.osv import osv, fields
 from datetime import datetime
 from openerp import SUPERUSER_ID
 
-MATERIALIZED_SQL_VIEW_STATES = [('nonexistent', 'Nonexistent'),
-                                ('creating', 'Creating'),
-                                ('refreshing', 'Refreshing'),
-                                ('refreshed', 'Refreshed'),
-                                ('aborted', 'Aborted'),
-                                ]
+MATERIALIZED_SQL_VIEW_STATES = [
+    ('nonexistent', 'Nonexistent'),
+    ('creating', 'Creating'),
+    ('refreshing', 'Refreshing'),
+    ('refreshed', 'Refreshed'),
+    ('aborted', 'Aborted'),
+]
 
 
 class MaterializedSqlView(osv.Model):
@@ -17,8 +18,8 @@ class MaterializedSqlView(osv.Model):
 
     _columns = {
         'name': fields.char('Name', required=True),
-        'model_id': fields.many2one('ir.model', 'Model', required=True, delete='cascade',
-                                    readonly=True),
+        'model_id': fields.many2one(
+            'ir.model', 'Model', required=True, delete='cascade', readonly=True),
         'view_name': fields.char('SQL view name', required=True, readonly=True),
         'matview_name': fields.char('Materialized SQL View Name', required=True, readonly=True),
         'pg_version': fields.integer('Mat view pg version', required=True, readonly=True),
@@ -26,8 +27,8 @@ class MaterializedSqlView(osv.Model):
         'last_refresh_start_date': fields.datetime('Last refreshed start date', readonly=True),
         'last_refresh_end_date': fields.datetime('Last refreshed end date', readonly=True),
         'last_error_message': fields.text('Last error', readonly=True),
-        'state': fields.selection(MATERIALIZED_SQL_VIEW_STATES, 'State', required=True,
-                                  readonly=True)
+        'state': fields.selection(
+            MATERIALIZED_SQL_VIEW_STATES, 'State', required=True, readonly=True)
     }
 
     _defaults = {
@@ -100,24 +101,21 @@ class MaterializedSqlView(osv.Model):
         return self.search(cr, uid, [('matview_name', '=', matview_name)], context=context)
 
     def before_create_view(self, cr, uid, matview_name, context=None):
-        return self.write_values(cr, uid, matview_name,
-                                 {'last_refresh_start_date': datetime.now(),
-                                  'state': 'creating',
-                                  'last_error_message': '',
-                                  }, context=context)
+        return self.write_values(
+            cr, uid, matview_name,
+            {'last_refresh_start_date': datetime.now(),
+             'state': 'creating', 'last_error_message': '', }, context=context)
 
     def before_refresh_view(self, cr, uid, matview_name, context=None):
-        return self.write_values(cr, uid, matview_name,
-                                 {'last_refresh_start_date': datetime.now(),
-                                  'state': 'refreshing',
-                                  'last_error_message': '',
-                                  }, context=context)
+        return self.write_values(
+            cr, uid, matview_name,
+            {'last_refresh_start_date': datetime.now(),
+             'state': 'refreshing', 'last_error_message': '', }, context=context)
 
     def after_refresh_view(self, cr, uid, matview_name, context=None):
-        values = {'last_refresh_end_date': datetime.now(),
-                  'state': 'refreshed',
-                  'last_error_message': '',
-                  }
+        values = {
+            'last_refresh_end_date': datetime.now(), 'state': 'refreshed',
+            'last_error_message': '', }
         pg_version = cr._cnx.server_version
         if context.get('values'):
             vals = context.get('values')
@@ -132,22 +130,20 @@ class MaterializedSqlView(osv.Model):
     def after_drop_view(self, cr, uid, matview_name, context=None):
         # Do not unlink here, we don't want to use on other record when refresh
         # need to drop and create a new materialized view
-        return self.write_values(cr, uid, matview_name,
-                                 {'state': 'nonexistent',
-                                  'last_error_message': '',
-                                  }, context=context)
+        return self.write_values(
+            cr, uid, matview_name,
+            {'state': 'nonexistent', 'last_error_message': '', }, context=context)
 
     def write_values(self, cr, uid, matview_name, values, context=None):
-        ids = self.search_materialized_sql_view_ids_from_matview_name(cr, uid, matview_name,
-                                                                      context=context)
+        ids = self.search_materialized_sql_view_ids_from_matview_name(
+            cr, uid, matview_name, context=context)
         return self.write(cr, uid, ids, values, context=context)
 
     def aborted_matview(self, cr, uid, matview_name, context=None):
         if not context:
             context = {}
-        return self.write_values(cr, uid, matview_name,
-                                 {'state': 'aborted',
-                                  'last_refresh_end_date': datetime.now(),
-                                  'last_error_message': context.get('error_message',
-                                                                    'Error not difined')
-                                  }, context=context)
+        return self.write_values(
+            cr, uid, matview_name,
+            {'state': 'aborted', 'last_refresh_end_date': datetime.now(),
+             'last_error_message': context.get('error_message', 'Error not defined')},
+            context=context)

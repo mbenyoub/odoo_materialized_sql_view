@@ -5,7 +5,7 @@ from openerp.osv import osv, fields
 
 class ModelTestUsingSqlMatView(osv.Model):
     """This model is only used to test materialized_sql_view module.
-       As an example we will calulate the number of res.users per res.groups
+       As an example we will calculate the number of res.users per res.groups
     """
     _name = 'test.materialized.view'
     _description = u"Model used to test the module"
